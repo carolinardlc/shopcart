@@ -15,7 +15,7 @@
           --color-darkColor: #151515;
           --color-lightColor: #52525b;
           --color-lightOrange: #fca99b;
-  --font-sans: var(--font-geist-sans);
+          --color-shop_light_green: #3b9c3c;
   --font-mono: var(--font-geist-mono);
   --font-poppins: Poppins, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -128,5 +128,8 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  .hoverEffect {
+    @apply transition-all duration-300 ease-in-out;
   }
 }
