@@ -1,6 +1,8 @@
 import { X } from 'lucide-react';
 import React, {FC} from "react";
+import Link from 'next/link';
 import Logo from "./Logo";
+import { headerData } from '@/constants/data';
 interface SideBarProps {
     isOpen: boolean;
     onClose: () => void;
@@ -23,7 +25,16 @@ const SideMenu: FC<SideBarProps>= ({isOpen, onClose}) => {
             <X />
           </button>
         </div>
-        <div></div>
+
+        <div className='flex flex-col space-y-3.5
+        font-semibold tracking-wide'>
+          {headerData?.map((item)=>(
+        <Link href={item?.href} key={item?.title}
+        className='hover:text-shop_light_green hoverEffect'>
+          {item?.title}
+        </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
