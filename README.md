@@ -1,21 +1,120 @@
-# ShopCart - Frontend & Backend
+# ShopCart - Arquitectura de Microservicios
 
-Este proyecto consta de un backend en Node.js/Express y un frontend en Next.js que se comunican entre sí.
+Este proyecto implementa una **arquitectura de microservicios** completa con backend distribuido en Node.js/Express, frontend en Next.js, autenticación OAuth 2.0, y comunicación asíncrona mediante eventos.
+
+## 🏗️ Arquitectura del Sistema
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│   Frontend      │───▶│   API Gateway    │───▶│   Microservicios    │
+│   (Next.js)     │    │   Port: 5000     │    │   (6 servicios)     │
+└─────────────────┘    └──────────────────┘    └─────────────────────┘
+                                │                         │
+                                ▼                         ▼
+                       ┌─────────────────┐    ┌─────────────────────┐
+                       │   RabbitMQ      │    │   PostgreSQL        │
+                       │   Port: 5672    │    │   Port: 5432        │
+                       └─────────────────┘    └─────────────────────┘
+```
+
+### Microservicios Implementados:
+- **🚪 API Gateway (5000)** - Punto único de entrada, autenticación JWT
+- **👤 User Service (5001)** - OAuth Google + gestión de usuarios
+- **📦 Product Service (5002)** - CRUD productos + gestión de stock
+- **🛒 Cart Service (5003)** - Gestión de carritos de compra
+- **💳 Payment Service (5004)** - Órdenes y pagos + eventos
+- **📂 Category Service (5005)** - Gestión de categorías
 
 ## Estructura del Proyecto
 
 ```
 shopcart/
-├── Backend/          # Servidor Express (Puerto 5000)
-│   ├── index.js      # Archivo principal del servidor
-│   └── package.json  # Dependencias del backend
-├── Frontend/         # Aplicación Next.js (Puerto 3000)
-│   ├── app/          # Páginas de la aplicación
-│   ├── components/   # Componentes React
-│   ├── lib/          # Utilidades y servicios API
-│   └── package.json  # Dependencias del frontend
-└── README.md         # Este archivo
+├── Backend/                    # Microservicios (Puertos 5000-5005)
+│   ├── microservices/         
+│   │   ├── api-gateway/       # Gateway principal
+│   │   ├── user-service/      # Usuarios y OAuth
+│   │   ├── product-service/   # Productos y stock
+│   │   ├── cart-service/      # Carritos
+│   │   ├── payment-service/   # Pagos y órdenes
+│   │   └── category-service/  # Categorías
+│   ├── setup-environment.ps1  # Configuración automática
+│   ├── start-microservices.ps1 # Iniciar servicios
+│   ├── db-access.ps1          # Acceso a base de datos
+│   └── setup-database.sql     # Esquemas de DB
+├── Frontend/                  # Aplicación Next.js (Puerto 3000)
+│   ├── app/                   # Páginas de la aplicación
+│   ├── components/            # Componentes React
+│   └── lib/                   # Servicios API
+└── README.md                  # Este archivo
 ```
+
+## 🚀 Inicio Rápido
+
+### Configuración Automática (Recomendado)
+
+```powershell
+# 1. Configurar entorno completo (PostgreSQL, RabbitMQ, dependencias)
+cd Backend
+.\setup-environment.ps1
+
+# 2. Iniciar todos los microservicios
+.\start-microservices.ps1
+
+# 3. Verificar que los servicios funcionen
+.\start-microservices.ps1 -Health
+
+# 4. Iniciar frontend (en nueva terminal)
+cd ..\Frontend
+npm run dev
+```
+
+### Scripts Automáticos Alternativos
+
+Desde la carpeta raíz:
+- **Windows (Batch):** Doble clic en `start-servers.bat`
+- **Windows (PowerShell):** Clic derecho en `start-servers.ps1` → "Ejecutar con PowerShell"
+
+## 🗄️ Acceso a la Base de Datos
+
+### Opción 1: Script de Acceso Rápido
+
+```powershell
+cd Backend
+
+# Conectar a la base de datos
+.\db-access.ps1
+
+# Ver información de la DB
+.\db-access.ps1 info
+
+# Ver datos de ejemplo
+.\db-access.ps1 samples
+
+# Ver todas las opciones
+.\db-access.ps1 help
+```
+
+### Opción 2: Línea de Comandos
+
+```bash
+# Conectar directamente
+psql -h localhost -p 5432 -U shopcart_user -d shopcart_db
+# Contraseña: shopcart_password
+```
+
+### Opción 3: Herramientas Gráficas
+
+**pgAdmin (Recomendado):**
+```powershell
+choco install pgadmin4
+```
+
+**Configuración de conexión:**
+- Host: `localhost`
+- Puerto: `5432`
+- Base de datos: `shopcart_db`
+- Usuario: `shopcart_user`
+- Contraseña: `shopcart_password`
 
 ## Instalación
 
@@ -24,7 +123,14 @@ shopcart/
 1. **Instalar dependencias del Backend:**
    ```bash
    cd Backend
-   npm install
+   
+   # Instalar dependencias de cada microservicio
+   cd microservices/api-gateway && npm install && cd ../..
+   cd microservices/user-service && npm install && cd ../..
+   cd microservices/product-service && npm install && cd ../..
+   cd microservices/cart-service && npm install && cd ../..
+   cd microservices/payment-service && npm install && cd ../..
+   cd microservices/category-service && npm install && cd ../..
    ```
 
 2. **Instalar dependencias del Frontend:**
@@ -42,12 +148,40 @@ Ejecuta uno de estos archivos desde la carpeta raíz:
 
 ## Ejecución Manual
 
-### 1. Iniciar el Backend
-```bash
+### 1. Iniciar los Microservicios
+
+```powershell
+# Opción A: Script automatizado (Recomendado)
 cd Backend
-npm run dev
+.\start-microservices.ps1
+
+# Opción B: Manual (6 terminales separadas)
+# Terminal 1 - API Gateway
+cd Backend/microservices/api-gateway && npm start
+
+# Terminal 2 - User Service  
+cd Backend/microservices/user-service && npm start
+
+# Terminal 3 - Product Service
+cd Backend/microservices/product-service && npm start
+
+# Terminal 4 - Cart Service
+cd Backend/microservices/cart-service && npm start
+
+# Terminal 5 - Payment Service
+cd Backend/microservices/payment-service && npm start
+
+# Terminal 6 - Category Service
+cd Backend/microservices/category-service && npm start
 ```
-El servidor estará disponible en: http://localhost:5000
+
+**Servicios disponibles en:**
+- API Gateway: http://localhost:5000
+- User Service: http://localhost:5001
+- Product Service: http://localhost:5002
+- Cart Service: http://localhost:5003
+- Payment Service: http://localhost:5004
+- Category Service: http://localhost:5005
 
 ### 2. Iniciar el Frontend
 ```bash
@@ -56,70 +190,183 @@ npm run dev
 ```
 La aplicación estará disponible en: http://localhost:3000
 
-## Endpoints de la API
+## 📡 Endpoints de la API
 
-### Backend (http://localhost:5000)
-- `GET /api/saludo` - Devuelve un mensaje de saludo
-- `POST /api/datos` - Recibe y procesa datos enviados desde el frontend
+### API Gateway (http://localhost:5000)
+- `GET /api/health` - Health check de todos los servicios
+- `GET /api/info` - Información del sistema
+- `GET /api/products` - Listar productos (proxy)
+- `GET /api/users/auth/google` - Iniciar OAuth Google
+- `POST /api/cart/items` - Agregar al carrito (requiere auth)
+
+### Autenticación OAuth 2.0
+```javascript
+// Iniciar login con Google
+window.location.href = 'http://localhost:5000/api/users/auth/google';
+
+// Verificar estado de autenticación
+fetch('http://localhost:5000/api/users/auth/status', {
+  credentials: 'include'
+});
+```
 
 ### Ejemplo de uso desde el frontend:
 ```javascript
 import { apiService } from '@/lib/api';
 
-// Obtener saludo
-const saludo = await apiService.getSaludo();
+// Obtener productos (público)
+const productos = await apiService.getProducts();
 
-// Enviar datos
+// Agregar al carrito (requiere autenticación)
+const resultado = await apiService.addToCart({
+  productId: 1,
+  quantity: 2
+});
+```
+
+## 🔐 Autenticación y Seguridad
+
+### OAuth 2.0 con Google
+
+1. **Configurar Google OAuth:**
+   - Ir a [Google Cloud Console](https://console.cloud.google.com/)
+   - Crear proyecto y habilitar Google+ API
+   - Crear credenciales OAuth 2.0
+   - Configurar URL de callback: `http://localhost:5001/api/users/auth/google/callback`
+
+2. **Actualizar variables de entorno:**
+   ```env
+   # En Backend/.env
+   GOOGLE_CLIENT_ID=tu_google_client_id
+   GOOGLE_CLIENT_SECRET=tu_google_client_secret
+   ```
+
+### JWT Tokens
+
+Las rutas protegidas requieren header de autorización:
+```javascript
+// Header requerido para rutas privadas
+Authorization: Bearer <jwt_token>
+```
+
+**Rutas públicas:** productos, categorías, health checks
+**Rutas privadas:** carrito, pagos, perfil de usuario
+
+## 🔍 Monitoreo y Health Checks
+
+### Verificar Estado de Servicios
+
+```powershell
+# Script de health check
+cd Backend
+.\start-microservices.ps1 -Health
+
+# O manualmente
+curl http://localhost:5000/api/health
+```
+
+### RabbitMQ Management UI
+
+- **URL:** http://localhost:15672
+- **Usuario:** guest
+- **Password:** guest
 const respuesta = await apiService.enviarDatos({ mensaje: "Hola desde el frontend" });
 ```
 
-## Características
+## 📊 Base de Datos PostgreSQL
 
-### Backend
-- ✅ Servidor Express con CORS habilitado
-- ✅ Middleware para parsear JSON
-- ✅ Rutas de ejemplo para GET y POST
-- ✅ Logging de datos recibidos
+### Consultas Útiles
+
+```sql
+-- Ver todas las tablas creadas
+\dt
+
+-- Explorar datos de ejemplo
+SELECT * FROM users;
+SELECT * FROM products p JOIN categories c ON p.category_id = c.id;
+SELECT * FROM carts WHERE status = 'active';
+
+-- Ver estructura de tablas
+\d users
+\d products
+\d orders
+```
+
+### Tablas Principales
+
+- **users** - Usuarios y datos de OAuth
+- **categories** - Categorías de productos
+- **products** - Productos, precios y stock
+- **carts / cart_items** - Carritos de compra
+- **orders / order_items** - Órdenes de compra
+- **payments** - Transacciones de pago
+- **stock_movements** - Historial de movimientos de inventario
+
+## 🎯 Características Implementadas
+
+### Arquitectura de Microservicios
+- ✅ 6 microservicios independientes + API Gateway
+- ✅ Comunicación REST síncrona
+- ✅ Eventos asíncronos con RabbitMQ
+- ✅ Base de datos PostgreSQL compartida con separación lógica
+- ✅ Health checks y monitoreo
+
+### Autenticación y Seguridad
+- ✅ OAuth 2.0 con Google (Identidad Federada)
+- ✅ JWT tokens para sesiones
+- ✅ Rate limiting en API Gateway
+- ✅ CORS configurado correctamente
+- ✅ Validación de rutas públicas vs privadas
+
+### Backend (Microservicios)
+- ✅ API Gateway con proxy inteligente
+- ✅ User Service con OAuth Google
+- ✅ Product Service con gestión de stock
+- ✅ Cart Service para carritos de compra
+- ✅ Payment Service para órdenes y pagos
+- ✅ Category Service para categorización
+- ✅ Eventos asíncronos (order.created, user.registered, etc.)
 
 ### Frontend
 - ✅ Aplicación Next.js con TypeScript
-- ✅ Servicio API centralizado (`lib/api.ts`)
-- ✅ Componente de prueba para la conexión Backend-Frontend
+- ✅ Servicio API centralizado
+- ✅ Componente de prueba para conexión Backend-Frontend
 - ✅ UI con Tailwind CSS y componentes shadcn/ui
 - ✅ Variables de entorno para configuración
 
-### Conexión
-- ✅ CORS configurado correctamente
-- ✅ Proxy de desarrollo configurado en Next.js
-- ✅ Manejo de errores de conexión
-- ✅ Componente de prueba en la página principal
+### Base de Datos
+- ✅ PostgreSQL con esquemas optimizados
+- ✅ Índices para consultas frecuentes
+- ✅ Relaciones entre entidades bien definidas
+- ✅ Datos de ejemplo para desarrollo
+- ✅ Triggers para timestamps automáticos
 
-## Componente de Prueba
+## 🛠️ Scripts Disponibles
 
-La página principal incluye un componente `TestApiComponent` que demuestra:
-- Obtener datos del backend (GET)
-- Enviar datos al backend (POST)
-- Manejo de estados de carga
-- Manejo de errores de conexión
+### Backend (Microservicios)
 
-## Desarrollo
+```powershell
+# Configuración inicial
+.\setup-environment.ps1
 
-### Estructura de Archivos Importantes
+# Gestión de servicios
+.\start-microservices.ps1          # Iniciar todos
+.\start-microservices.ps1 -Dev     # Modo desarrollo (nodemon)
+.\start-microservices.ps1 -Health  # Verificar estado
+.\start-microservices.ps1 -Stop    # Detener todos
 
-**Backend:**
-- `index.js` - Servidor principal con rutas API
-
-**Frontend:**
-- `lib/api.ts` - Servicio para comunicación con el backend
-- `components/TestApiComponent.tsx` - Componente de prueba de conexión
-- `app/page.tsx` - Página principal con el componente de prueba
-
-### Variables de Entorno
-
-El frontend utiliza estas variables de entorno (`.env.local`):
+# Base de datos
+.\db-access.ps1                    # Conectar a PostgreSQL
+.\db-access.ps1 info              # Información de la DB
+.\db-access.ps1 samples           # Ver datos de ejemplo
 ```
-NEXT_PUBLIC_API_URL=http://localhost:5000/api
-NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+
+### Por Microservicio
+
+```bash
+cd Backend/microservices/[servicio]
+npm start      # Producción
+npm run dev    # Desarrollo (nodemon)
 ```
 
 ## Solución de Problemas
@@ -141,14 +388,106 @@ Si algún puerto está ocupado, puedes cambiar:
 
 ## Scripts Disponibles
 
-### Backend
-- `npm run dev` - Inicia el servidor de desarrollo
-- `npm start` - Inicia el servidor
-
 ### Frontend
-- `npm run dev` - Inicia el servidor de desarrollo con Turbopack
-- `npm run build` - Construye la aplicación para producción
-- `npm start` - Inicia el servidor de producción
-- `npm run lint` - Ejecuta el linter
 
-¡Tu aplicación está lista para usar! 🚀
+```bash
+cd Frontend
+npm run dev    # Desarrollo con Turbopack
+npm run build  # Construir para producción  
+npm start      # Servidor de producción
+npm run lint   # Ejecutar linter
+```
+
+## 🐳 Docker (Futuro)
+
+El proyecto incluye `docker-compose.yml` para futura containerización:
+
+```bash
+cd Backend
+docker-compose up --build  # Construir e iniciar
+docker-compose up          # Solo iniciar
+docker-compose down        # Detener
+```
+
+## 📚 Documentación Adicional
+
+- **[Arquitectura de Microservicios](Backend/MICROSERVICES_ARCHITECTURE.md)** - Documentación técnica detallada
+- **[README del Backend](Backend/README_MICROSERVICES.md)** - Guía completa del backend
+- **[Configuración OAuth Google](https://developers.google.com/identity/protocols/oauth2)** - Documentación oficial
+
+## 🔧 Solución de Problemas
+
+### El frontend no puede conectar con el backend
+1. Verificar que todos los microservicios estén ejecutándose:
+   ```powershell
+   .\start-microservices.ps1 -Health
+   ```
+2. Comprobar que PostgreSQL y RabbitMQ estén ejecutándose
+3. Verificar URLs en variables de entorno
+
+### Error de dependencias
+```bash
+# Limpiar e reinstalar (en cada microservicio)
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### PostgreSQL no conecta
+```powershell
+# Verificar servicio
+Get-Service postgresql*
+
+# Reiniciar servicio  
+Restart-Service postgresql-x64-14
+
+# Verificar conexión manualmente
+.\db-access.ps1
+```
+
+### RabbitMQ no disponible
+```powershell
+# Verificar servicio
+Get-Service RabbitMQ
+
+# Reiniciar servicio
+Restart-Service RabbitMQ
+
+# Management UI
+http://localhost:15672 (guest/guest)
+```
+
+### Puertos ocupados
+```bash
+# Windows - verificar puerto ocupado
+netstat -ano | findstr :5000
+
+# Matar proceso
+taskkill /PID <PID> /F
+```
+
+## 🚀 Próximos Pasos
+
+### Para Desarrollo
+1. **Configurar OAuth Google** con credenciales reales
+2. **Adaptar Frontend** para consumir el API Gateway
+3. **Implementar autenticación** en componentes React
+4. **Agregar más endpoints** según necesidades del negocio
+
+### Para Producción
+1. **Configurar HTTPS** y certificados SSL
+2. **Implementar logging** centralizado
+3. **Agregar métricas** y monitoring
+4. **Configurar CI/CD** pipeline
+5. **Desplegar en cloud** (AWS, Azure, GCP)
+
+## 📞 Soporte
+
+Para problemas específicos:
+- **Base de datos:** Usar `.\db-access.ps1 help`
+- **Microservicios:** Revisar logs en cada terminal
+- **Autenticación:** Verificar configuración OAuth en `.env`
+- **Health checks:** Ejecutar `.\start-microservices.ps1 -Health`
+
+---
+
+🛍️ **ShopCart** - E-commerce con arquitectura de microservicios moderna y escalable

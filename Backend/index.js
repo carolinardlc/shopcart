@@ -93,7 +93,7 @@ app.use((err, req, res, next) => {
 // Función para inicializar la base de datos
 const initializeDatabase = async () => {
   try {
-    console.log('🔧 Inicializando base de datos...');
+    console.log('🔧 Verificando conexión a base de datos...');
     
     // Probar conexión
     const connected = await testConnection();
@@ -101,16 +101,13 @@ const initializeDatabase = async () => {
       throw new Error('No se pudo conectar a la base de datos');
     }
     
-    // Crear tablas
-    await createTables();
+    // NOTA: Las tablas ya están creadas por setup-database.sql
+    // No es necesario crear tablas ni insertar datos aquí
     
-    // Insertar datos de ejemplo (opcional)
-    await insertSampleData();
-    
-    console.log('✅ Base de datos inicializada correctamente');
+    console.log('✅ Conexión a base de datos verificada');
     return true;
   } catch (error) {
-    console.error('❌ Error inicializando base de datos:', error.message);
+    console.error('❌ Error verificando base de datos:', error.message);
     return false;
   }
 };
@@ -122,7 +119,9 @@ const startServer = async () => {
     const dbInitialized = await initializeDatabase();
     
     if (!dbInitialized) {
-      console.log('⚠️ Servidor iniciado sin base de datos');
+      console.log('⚠️ Servidor iniciado sin conexión a base de datos');
+    } else {
+      console.log('✅ Servidor iniciado con base de datos conectada');
     }
     
     // Iniciar servidor HTTP
