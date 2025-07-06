@@ -1,0 +1,28 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js",
+    "db:test": "node scripts/db-admin.js test",
+    "db:setup": "node scripts/db-admin.js setup",
+    "db:reset": "node scripts/db-admin.js reset",
+    "db:drop": "node scripts/db-admin.js drop",
+    "db:seed": "node scripts/db-admin.js seed",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.0.1",
+    "express": "^4.18.2",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.4"
+  }
+}

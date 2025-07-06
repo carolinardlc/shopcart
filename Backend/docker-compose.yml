@@ -1,0 +1,171 @@
+# Docker Compose para ShopCart Microservices
+# Para usar en futuras implementaciones con contenedores
+
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:14
+    container_name: shopcart-postgres
+    environment:
+      POSTGRES_DB: shopcart_db
+      POSTGRES_USER: shopcart_user
+      POSTGRES_PASSWORD: shopcart_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./setup-database.sql:/docker-entrypoint-initdb.d/setup-database.sql
+    networks:
+      - shopcart-network
+
+  # RabbitMQ para mensajería
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: shopcart-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"     # AMQP port
+      - "15672:15672"   # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - shopcart-network
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./microservices/api-gateway
+      dockerfile: Dockerfile
+    container_name: shopcart-api-gateway
+    environment:
+      - NODE_ENV=production
+      - GATEWAY_PORT=5000
+      - USER_SERVICE_URL=http://user-service:5001
+      - PRODUCT_SERVICE_URL=http://product-service:5002
+      - CART_SERVICE_URL=http://cart-service:5003
+      - PAYMENT_SERVICE_URL=http://payment-service:5004
+      - CATEGORY_SERVICE_URL=http://category-service:5005
+    ports:
+      - "5000:5000"
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - shopcart-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./microservices/user-service
+      dockerfile: Dockerfile
+    container_name: shopcart-user-service
+    environment:
+      - NODE_ENV=production
+      - USER_SERVICE_PORT=5001
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=shopcart_db
+      - DB_USER=shopcart_user
+      - DB_PASSWORD=shopcart_password
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - shopcart-network
+
+  # Product Service
+  product-service:
+    build:
+      context: ./microservices/product-service
+      dockerfile: Dockerfile
+    container_name: shopcart-product-service
+    environment:
+      - NODE_ENV=production
+      - PRODUCT_SERVICE_PORT=5002
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=shopcart_db
+      - DB_USER=shopcart_user
+      - DB_PASSWORD=shopcart_password
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - shopcart-network
+
+  # Cart Service
+  cart-service:
+    build:
+      context: ./microservices/cart-service
+      dockerfile: Dockerfile
+    container_name: shopcart-cart-service
+    environment:
+      - NODE_ENV=production
+      - CART_SERVICE_PORT=5003
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=shopcart_db
+      - DB_USER=shopcart_user
+      - DB_PASSWORD=shopcart_password
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - shopcart-network
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./microservices/payment-service
+      dockerfile: Dockerfile
+    container_name: shopcart-payment-service
+    environment:
+      - NODE_ENV=production
+      - PAYMENT_SERVICE_PORT=5004
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=shopcart_db
+      - DB_USER=shopcart_user
+      - DB_PASSWORD=shopcart_password
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - shopcart-network
+
+  # Category Service
+  category-service:
+    build:
+      context: ./microservices/category-service
+      dockerfile: Dockerfile
+    container_name: shopcart-category-service
+    environment:
+      - NODE_ENV=production
+      - CATEGORY_SERVICE_PORT=5005
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=shopcart_db
+      - DB_USER=shopcart_user
+      - DB_PASSWORD=shopcart_password
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - postgres
+      - rabbitmq
+    networks:
+      - shopcart-network
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
+
+networks:
+  shopcart-network:
+    driver: bridge
