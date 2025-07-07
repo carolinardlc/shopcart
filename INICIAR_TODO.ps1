@@ -631,9 +631,9 @@ if ($allHealthy) {
 
 Write-Host ""
 Write-Host "[OAUTH] CONFIGURACION DE GOOGLE OAUTH:" -ForegroundColor Cyan
-Write-Host "   [OK] Client ID configurado: 150567077156-guvr0ahe595et0s94leb3tt9bnntn1hp.apps.googleusercontent.com" -ForegroundColor Green
-Write-Host "   [OK] Client Secret configurado: GOCSPX-B8Qt...f8B" -ForegroundColor Green
-Write-Host "   [INFO] OAuth completamente configurado para autenticacion con Google" -ForegroundColor White
+Write-Host "   [OK] Archivos .env configurados correctamente" -ForegroundColor Green
+Write-Host "   [INFO] Sistema funciona con credenciales de desarrollo" -ForegroundColor Yellow
+Write-Host "   [INFO] Para producción, configurar credenciales reales en Google Cloud" -ForegroundColor White
 Write-Host "   [URL] Endpoint de autenticacion: http://localhost:5001/api/users/auth/google" -ForegroundColor Gray
 
 Write-Host ""

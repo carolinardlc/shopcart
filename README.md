@@ -10,14 +10,21 @@
 git clone [URL_DEL_REPOSITORIO]
 cd shopcart
 
-# 2. Abrir PowerShell como Administrador
-# 3. Ejecutar UN SOLO comando (¡instala Node.js, PostgreSQL, RabbitMQ, etc!)
+# 2. Abrir PowerShell como Administrador  
+# 3. Ejecutar UN SOLO comando (¡funciona sin credenciales!)
 .\INICIAR_TODO.ps1
 ```
+**🔒 SEGURO:** Este repositorio NO contiene secretos. Funciona inmediatamente sin OAuth real.
 
-### 🎯 Opción 2: Inicio rápido (si ya tienes todo instalado)
+📚 **Guía completa:** [`INICIO_SIN_SECRETOS.md`](./INICIO_SIN_SECRETOS.md)
+
+### 🎯 Opción 2: Configuración manual
 ```powershell
-.\INICIAR_RAPIDO.ps1
+# Los archivos .env.example están listos para usar
+copy Backend\.env.example Backend\.env
+copy Backend\microservices\api-gateway\.env.example Backend\microservices\api-gateway\.env
+copy Frontend\.env.local.example Frontend\.env.local
+.\start-servers.ps1
 ```
 
 ### 🎯 Opción 3: Configuración manual paso a paso
