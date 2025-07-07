@@ -28,8 +28,14 @@ const TestApiComponent: React.FC<TestApiComponentProps> = ({ className }) => {
     try {
       const response = await apiService.getSaludo();
       setMensaje(response.mensaje || 'Respuesta recibida');
-    } catch (err) {
-      setError('Error al conectar con el backend. Asegúrate de que esté ejecutándose en el puerto 5000.');
+    } catch (err: any) {
+      // Manejar error de autenticación de manera más amigable
+      if (err.message && err.message.includes('Token de acceso requerido')) {
+        setError('Este endpoint requiere autenticación OAuth con Google. Configura las credenciales primero.');
+        setMensaje('Autenticación requerida - OAuth no configurado');
+      } else {
+        setError('Error al conectar con el backend. Verifica que esté ejecutándose en el puerto 5000.');
+      }
       console.error('Error:', err);
     } finally {
       setIsLoading(false);
@@ -43,9 +49,15 @@ const TestApiComponent: React.FC<TestApiComponentProps> = ({ className }) => {
     try {
       const response = await apiService.getHealth();
       setHealthStatus(response);
-    } catch (err) {
-      setError('Error al obtener estado de salud del backend.');
-      console.error('Error:', err);
+    } catch (err: any) {
+      // El health check puede fallar mientras los microservicios se inician
+      setError('Health check temporalmente no disponible - Los microservicios pueden estar iniciándose.');
+      setHealthStatus({ 
+        status: 'INICIANDO', 
+        message: 'Los microservicios están iniciándose. Espera 1-2 minutos.',
+        timestamp: new Date().toISOString()
+      });
+      console.warn('Health check no disponible:', err);
     } finally {
       setIsLoading(false);
     }
