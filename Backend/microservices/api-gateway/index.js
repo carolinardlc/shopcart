@@ -75,6 +75,7 @@ const isPublicRoute = (path, method) => {
   const publicRoutes = [
     '/api/health',
     '/api/info',
+    '/api/saludo',
     '/api/users/auth/google',
     '/api/users/auth/google/callback',
     '/api/users/auth/status',
@@ -114,7 +115,16 @@ app.get('/api/health', async (req, res) => {
   for (const [serviceName, serviceUrl] of Object.entries(services)) {
     try {
       const axios = require('axios');
-      const response = await axios.get(`${serviceUrl}/api/${serviceName === 'payment' ? 'payments' : serviceName}/health`, {
+      // Mapear nombres de servicios a endpoints correctos
+      const endpointMap = {
+        'user': 'users',
+        'product': 'products', 
+        'cart': 'cart',
+        'payment': 'payments',
+        'category': 'categories'
+      };
+      const endpoint = endpointMap[serviceName] || serviceName;
+      const response = await axios.get(`${serviceUrl}/api/${endpoint}/health`, {
         timeout: 5000
       });
       serviceHealths[serviceName] = {

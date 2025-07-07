@@ -1,6 +1,41 @@
-# ShopCart - Arquitectura de Microservicios
+# 🚀 ShopCart - Arquitectura de Microservicios
 
-Este proyecto implementa una **arquitectura de microservicios** completa con backend distribuido en Node.js/Express, frontend en Next.js, autenticación OAuth 2.0, y comunicación asíncrona mediante eventos.
+## ⚡ INICIO RÁPIDO (Para Compañeros del Equipo)
+
+### 🎯 Opción 1: Instalación COMPLETAMENTE automática (RECOMENDADA)
+**¡NUEVO!** Instala TODO automáticamente, incluso si no tienes nada.
+
+```powershell
+# 1. Clonar el repo
+git clone [URL_DEL_REPOSITORIO]
+cd shopcart
+
+# 2. Abrir PowerShell como Administrador
+# 3. Ejecutar UN SOLO comando (¡instala Node.js, PostgreSQL, RabbitMQ, etc!)
+.\INICIAR_TODO.ps1
+```
+
+### 🎯 Opción 2: Inicio rápido (si ya tienes todo instalado)
+```powershell
+.\INICIAR_RAPIDO.ps1
+```
+
+### 🎯 Opción 3: Configuración manual paso a paso
+Ver guía completa en: **[GUIA_INSTALACION_COMPLETA.md](GUIA_INSTALACION_COMPLETA.md)**
+
+---
+
+## 🛠️ Scripts Útiles
+
+| Script | Descripción | ¿Cuándo usar? |
+|--------|-------------|---------------|
+| `.\INICIAR_TODO.ps1` | 🚀 Instala TODO y ejecuta el sistema completo | **Primera vez o si faltan dependencias** |
+| `.\INICIAR_RAPIDO.ps1` | ⚡ Inicia solo los servicios (sin instalar) | **Si ya tienes todo instalado** |
+| `.\VERIFICAR_SISTEMA.ps1` | 🔍 Verifica estado de todos los servicios | **Para debugging** |
+| `.\DETENER_TODO.ps1` | 🛑 Detiene todos los servicios | **Para parar el sistema** |
+| `.\GENERAR_REPORTE.ps1` | 📊 Genera reporte detallado del sistema | **Si algo no funciona** |
+
+---
 
 ## 🏗️ Arquitectura del Sistema
 
@@ -17,7 +52,13 @@ Este proyecto implementa una **arquitectura de microservicios** completa con bac
                        └─────────────────┘    └─────────────────────┘
 ```
 
-### Microservicios Implementados:
+### 🎯 URLs del Sistema
+- **🎨 Aplicación**: http://localhost:3000
+- **🚪 API Gateway**: http://localhost:5000
+- **📊 RabbitMQ Management**: http://localhost:15672 (guest/guest)
+- **🗄️ PostgreSQL**: localhost:5432
+
+### 🔧 Microservicios
 - **🚪 API Gateway (5000)** - Punto único de entrada, autenticación JWT
 - **👤 User Service (5001)** - OAuth Google + gestión de usuarios
 - **📦 Product Service (5002)** - CRUD productos + gestión de stock
@@ -25,11 +66,17 @@ Este proyecto implementa una **arquitectura de microservicios** completa con bac
 - **💳 Payment Service (5004)** - Órdenes y pagos + eventos
 - **📂 Category Service (5005)** - Gestión de categorías
 
-## Estructura del Proyecto
+---
+
+## 📁 Estructura del Proyecto
 
 ```
 shopcart/
-├── Backend/                    # Microservicios (Puertos 5000-5005)
+├── INICIAR_TODO.ps1           # 🚀 Script principal para iniciar todo
+├── VERIFICAR_SISTEMA.ps1      # 🔍 Verificar estado del sistema
+├── DETENER_TODO.ps1           # 🛑 Detener todos los servicios
+├── GUIA_INSTALACION_COMPLETA.md # 📖 Guía detallada paso a paso
+├── Backend/                   # Microservicios (Puertos 5000-5005)
 │   ├── microservices/         
 │   │   ├── api-gateway/       # Gateway principal
 │   │   ├── user-service/      # Usuarios y OAuth
@@ -39,7 +86,6 @@ shopcart/
 │   │   └── category-service/  # Categorías
 │   ├── setup-environment.ps1  # Configuración automática
 │   ├── start-microservices.ps1 # Iniciar servicios
-│   ├── db-access.ps1          # Acceso a base de datos
 │   └── setup-database.sql     # Esquemas de DB
 ├── Frontend/                  # Aplicación Next.js (Puerto 3000)
 │   ├── app/                   # Páginas de la aplicación
@@ -226,19 +272,24 @@ const resultado = await apiService.addToCart({
 
 ## 🔐 Autenticación y Seguridad
 
-### OAuth 2.0 con Google
+### ⚠️ Configuración de OAuth 2.0 con Google
+
+**IMPORTANTE:** Las credenciales OAuth NO están incluidas en el repositorio por seguridad.
 
 1. **Configurar Google OAuth:**
-   - Ir a [Google Cloud Console](https://console.cloud.google.com/)
-   - Crear proyecto y habilitar Google+ API
-   - Crear credenciales OAuth 2.0
-   - Configurar URL de callback: `http://localhost:5001/api/users/auth/google/callback`
+   - Sigue la guía detallada: [`CONFIGURACION_OAUTH.md`](./CONFIGURACION_OAUTH.md)
+   - Crear proyecto en [Google Cloud Console](https://console.cloud.google.com/)
+   - Configurar credenciales OAuth 2.0
+   - URL de callback: `http://localhost:5001/api/users/auth/google/callback`
 
-2. **Actualizar variables de entorno:**
-   ```env
-   # En Backend/.env
-   GOOGLE_CLIENT_ID=tu_google_client_id
-   GOOGLE_CLIENT_SECRET=tu_google_client_secret
+2. **Configurar archivos .env:**
+   ```bash
+   # Copiar archivos de ejemplo
+   cp Backend/.env.example Backend/.env
+   cp Backend/microservices/api-gateway/.env.example Backend/microservices/api-gateway/.env
+   cp Frontend/.env.local.example Frontend/.env.local
+   
+   # Editar y reemplazar credenciales reales
    ```
 
 ### JWT Tokens
