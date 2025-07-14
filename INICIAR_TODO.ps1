@@ -415,29 +415,17 @@ Write-Host ""
 # Paso 4: Iniciar microservicios
 Write-Host "[>>] PASO 4: Iniciando microservicios..." -ForegroundColor Cyan
 
-$microservices = @(
-    @{Name="API Gateway"; Path="Backend\microservices\api-gateway"; Port=5000},
-    @{Name="User Service"; Path="Backend\microservices\user-service"; Port=5001},
-    @{Name="Product Service"; Path="Backend\microservices\product-service"; Port=5002},
-    @{Name="Cart Service"; Path="Backend\microservices\cart-service"; Port=5003},
-    @{Name="Payment Service"; Path="Backend\microservices\payment-service"; Port=5004},
-    @{Name="Category Service"; Path="Backend\microservices\category-service"; Port=5005}
+# Usar el script optimizado de microservicios
+$backendPath = Join-Path $scriptPath "Backend"
+Write-Host "   [>>] Iniciando todos los microservicios con start-microservices.js..." -ForegroundColor Gray
+
+Start-Process powershell -ArgumentList @(
+    "-NoExit",
+    "-Command", 
+    "cd '$backendPath'; Write-Host 'Iniciando todos los microservicios...' -ForegroundColor Green; npm run start-all"
 )
 
-foreach ($service in $microservices) {
-    $servicePath = Join-Path $scriptPath $service.Path
-    Write-Host "   [>>] Iniciando $($service.Name) (Puerto $($service.Port))..." -ForegroundColor Gray
-    
-    Start-Process powershell -ArgumentList @(
-        "-NoExit",
-        "-Command", 
-        "cd '$servicePath'; Write-Host 'Iniciando $($service.Name)...' -ForegroundColor Green; npm start"
-    )
-    
-    Start-Sleep -Seconds 2
-}
-
-Write-Host "   [OK] Todos los microservicios iniciados" -ForegroundColor Green
+Write-Host "   [OK] Todos los microservicios iniciados en una sola ventana" -ForegroundColor Green
 Write-Host ""
 
 # Paso 5: Esperar que los servicios esten listos
@@ -566,10 +554,10 @@ if ($criticalServicesDown) {
     Write-Host ""
     Write-Host "   [CRITICAL] API Gateway no responde - El frontend no funcionara" -ForegroundColor Red
     Write-Host "   [DIAG] Pasos para solucionar:" -ForegroundColor Yellow
-    Write-Host "   1. Verifica que la terminal del API Gateway este abierta" -ForegroundColor White
-    Write-Host "   2. En la terminal del API Gateway, verifica que no haya errores" -ForegroundColor White
+    Write-Host "   1. Verifica que la terminal de microservicios este abierta" -ForegroundColor White
+    Write-Host "   2. En la terminal de microservicios, verifica que no haya errores" -ForegroundColor White
     Write-Host "   3. Si hay errores de base de datos, verifica PostgreSQL 17" -ForegroundColor White
-    Write-Host "   4. Reinicia manualmente: cd Backend\microservices\api-gateway && npm start" -ForegroundColor White
+    Write-Host "   4. Reinicia manualmente: cd Backend && npm run start-all" -ForegroundColor White
 }
 
 Write-Host ""
@@ -641,7 +629,7 @@ Write-Host "[>>] ABRIR APLICACION:" -ForegroundColor Cyan
 Write-Host "   http://localhost:3000" -ForegroundColor White
 Write-Host ""
 Write-Host "[STOP] PARA DETENER:" -ForegroundColor Red
-Write-Host "   Cierra todas las ventanas de PowerShell que se abrieron" -ForegroundColor White
+Write-Host "   Cierra las 2 ventanas de PowerShell (Backend y Frontend)" -ForegroundColor White
 Write-Host ""
 
 # Opcion para abrir el navegador automaticamente

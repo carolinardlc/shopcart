@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
+    "start-all": "node start-microservices.js",
     "db:test": "node scripts/db-admin.js test",
     "db:setup": "node scripts/db-admin.js setup",
     "db:reset": "node scripts/db-admin.js reset",

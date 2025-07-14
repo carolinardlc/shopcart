@@ -10,22 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Heart, ShoppingCart, Search, Filter, Star, Sparkles, Volume2 } from 'lucide-react';
-
-interface Product {
-  id: number;
-  name: string;
-  price: number;
-  originalPrice?: number;
-  image: string;
-  rating: number;
-  reviews: number;
-  emotions: string[];
-  category: string;
-  description: string;
-  isNew?: boolean;
-  isFavorite?: boolean;
-  inCart?: boolean;
-}
+import { apiService, Product } from '@/lib/api';
+import AddToCartButton from '@/components/AddToCartButton';
 
 const emotionalStates = [
   { value: 'happy', label: '😊 Feliz', color: 'bg-yellow-100 text-yellow-800' },
@@ -45,119 +31,82 @@ const lifestyleRoles = [
   { value: 'traveler', label: '✈️ Viajero' },
 ];
 
-const mockProducts: Product[] = [
-  {
-    id: 1,
-    name: 'Auriculares Bluetooth Premium',
-    price: 89.99,
-    originalPrice: 129.99,
-    image: '/api/placeholder/300/300',
-    rating: 4.5,
-    reviews: 1245,
-    emotions: ['happy', 'excited'],
-    category: 'Tecnología',
-    description: 'Auriculares con cancelación de ruido',
-    isNew: true,
-    isFavorite: false,
-    inCart: false
-  },
-  {
-    id: 2,
-    name: 'Mochila Deportiva Multifuncional',
-    price: 45.99,
-    image: '/api/placeholder/300/300',
-    rating: 4.3,
-    reviews: 856,
-    emotions: ['motivated', 'adventurous'],
-    category: 'Deportes',
-    description: 'Mochila resistente para actividades deportivas',
-    isFavorite: true,
-    inCart: false
-  },
-  {
-    id: 3,
-    name: 'Set de Aromas Relajantes',
-    price: 32.99,
-    image: '/api/placeholder/300/300',
-    rating: 4.7,
-    reviews: 423,
-    emotions: ['calm', 'romantic'],
-    category: 'Hogar',
-    description: 'Aceites esenciales para relajación',
-    isFavorite: false,
-    inCart: true
-  }
-];
-
 export default function ShopPageNew() {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>(mockProducts);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedEmotion, setSelectedEmotion] = useState('');
-  const [selectedRole, setSelectedRole] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedEmotion, setSelectedEmotion] = useState('all');
+  const [selectedRole, setSelectedRole] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeTab, setActiveTab] = useState('relevant');
   const [isListening, setIsListening] = useState(false);
   const [savedFilters, setSavedFilters] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [favorites, setFavorites] = useState<number[]>([]);
 
+  // Cargar productos reales del backend
   useEffect(() => {
-    filterProducts();
-  }, [searchQuery, selectedEmotion, selectedRole, selectedCategory, activeTab]);
+    const loadProducts = async () => {
+      setIsLoading(true);
+      try {
+        const response = await apiService.getProducts();
+        if (response.success && response.data) {
+          const activeProducts = response.data.filter(product => product.is_active);
+          setProducts(activeProducts);
+          setFilteredProducts(activeProducts);
+        }
+      } catch (err) {
+        console.error('Error cargando productos:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const filterProducts = () => {
+    loadProducts();
+  }, []);
+
+  // Filtros de productos
+  useEffect(() => {
     let filtered = [...products];
 
     if (searchQuery) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase())
+        product.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.category_name?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    if (selectedEmotion) {
+    if (selectedCategory && selectedCategory !== 'all') {
       filtered = filtered.filter(product =>
-        product.emotions.includes(selectedEmotion)
+        product.category_name?.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
 
+    // Ordenar según tab activo
     switch (activeTab) {
       case 'relevant':
-        filtered.sort((a, b) => (b.rating * b.reviews) - (a.rating * a.reviews));
+        // Ordenar por precio (simulando relevancia)
+        filtered.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
         break;
-      case 'recent':
-        filtered.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+      case 'new':
+        // Los productos más recientes primero (por ID)
+        filtered.sort((a, b) => b.id - a.id);
         break;
       case 'favorites':
-        filtered = filtered.filter(product => product.isFavorite);
+        filtered = filtered.filter(product => favorites.includes(product.id));
         break;
     }
 
     setFilteredProducts(filtered);
-  };
-
-  const handleVoiceSearch = () => {
-    setIsListening(true);
-    setTimeout(() => {
-      setIsListening(false);
-      setSearchQuery('auriculares bluetooth');
-    }, 2000);
-  };
+  }, [products, searchQuery, selectedCategory, activeTab, favorites]);
 
   const toggleFavorite = (productId: number) => {
-    setProducts(prev => prev.map(product =>
-      product.id === productId
-        ? { ...product, isFavorite: !product.isFavorite }
-        : product
-    ));
-  };
-
-  const addToCart = (productId: number) => {
-    setProducts(prev => prev.map(product =>
-      product.id === productId
-        ? { ...product, inCart: !product.inCart }
-        : product
-    ));
+    setFavorites(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
   };
 
   const surpriseMe = () => {
@@ -172,79 +121,114 @@ export default function ShopPageNew() {
     }
   };
 
-  const getEmotionColor = (emotion: string) => {
-    const emotionData = emotionalStates.find(e => e.value === emotion);
-    return emotionData?.color || 'bg-gray-100 text-gray-800';
+  const voiceSearch = () => {
+    setIsListening(!isListening);
+    // Aquí se implementaría la funcionalidad de reconocimiento de voz
+    setTimeout(() => setIsListening(false), 3000);
+  };
+
+  // Función para obtener un badge de emoción aleatorio para cada producto
+  const getRandomEmotion = (productId: number) => {
+    const index = productId % emotionalStates.length;
+    return emotionalStates[index];
+  };
+
+  // Función para generar rating aleatorio
+  const getRandomRating = (productId: number) => {
+    const ratings = [4.2, 4.5, 4.8, 4.1, 4.6, 4.3, 4.7, 4.4];
+    return ratings[productId % ratings.length];
   };
 
   const ProductCard = ({ product }: { product: Product }) => (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="relative">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-48 object-cover"
-        />
-        {product.isNew && (
-          <Badge className="absolute top-2 left-2 bg-green-500">
-            Nuevo
-          </Badge>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-          onClick={() => toggleFavorite(product.id)}
-        >
-          <Heart className={`h-4 w-4 ${product.isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
-        </Button>
-      </div>
-      
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">{product.name}</CardTitle>
-        <CardDescription>{product.description}</CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center">
-            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-            <span className="text-sm font-medium ml-1">{product.rating}</span>
-          </div>
-          <span className="text-sm text-gray-500">({product.reviews} reseñas)</span>
-        </div>
-
-        <div className="flex flex-wrap gap-1">
-          {product.emotions.map((emotion) => (
-            <Badge key={emotion} variant="secondary" className={getEmotionColor(emotion)}>
-              {emotionalStates.find(e => e.value === emotion)?.label}
-            </Badge>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-green-600">
-              S/{product.price}
-            </span>
-            {product.originalPrice && (
-              <span className="text-sm text-gray-500 line-through">
-                S/{product.originalPrice}
-              </span>
+    <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+      <CardContent className="p-0">
+        <div className="relative">
+          <div className="h-48 bg-gray-200 rounded-t-lg flex items-center justify-center overflow-hidden">
+            {product.image_url ? (
+              <img 
+                src={product.image_url} 
+                alt={product.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              />
+            ) : (
+              <span className="text-gray-500">Imagen del producto</span>
             )}
           </div>
           
           <Button
-            onClick={() => addToCart(product.id)}
-            className={product.inCart ? 'bg-green-500 hover:bg-green-600' : ''}
+            variant="ghost"
+            size="sm"
+            className="absolute top-2 right-2 h-8 w-8 rounded-full bg-white/80 hover:bg-white"
+            onClick={() => toggleFavorite(product.id)}
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
-            {product.inCart ? 'En carrito' : 'Agregar'}
+            <Heart className={`h-4 w-4 ${favorites.includes(product.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
           </Button>
+          
+          {product.id % 4 === 0 && (
+            <Badge className="absolute top-2 left-2 bg-green-500">
+              Nuevo
+            </Badge>
+          )}
+        </div>
+        
+        <div className="p-4 space-y-3">
+          <div>
+            <h3 className="font-semibold text-lg line-clamp-1">{product.name}</h3>
+            <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <div className="flex items-center">
+              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+              <span className="text-sm font-medium ml-1">{getRandomRating(product.id)}</span>
+            </div>
+            <span className="text-xs text-gray-500">({Math.floor(product.id * 23 + 100)} reseñas)</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-1">
+            <Badge 
+              variant="outline" 
+              className={`text-xs ${getRandomEmotion(product.id).color}`}
+            >
+              {getRandomEmotion(product.id).label}
+            </Badge>
+            {product.category_name && (
+              <Badge variant="outline" className="text-xs">
+                {product.category_name}
+              </Badge>
+            )}
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-xl font-bold text-green-600">
+              S/{parseFloat(product.price).toFixed(2)}
+            </span>
+            <span className="text-sm text-gray-500">Stock: {product.stock}</span>
+          </div>
+          
+          <AddToCartButton
+            productId={product.id}
+            productName={product.name}
+            disabled={product.stock === 0}
+            className="w-full"
+          >
+            {product.stock === 0 ? 'Agotado' : 'Agregar al carrito'}
+          </AddToCartButton>
         </div>
       </CardContent>
     </Card>
   );
+
+  if (isLoading) {
+    return (
+      <Container className="py-8">
+        <div className="text-center py-20">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando productos...</p>
+        </div>
+      </Container>
+    );
+  }
 
   return (
     <Container className="py-8">
@@ -259,28 +243,24 @@ export default function ShopPageNew() {
               className="pl-10"
             />
           </div>
+          
           <Button
             variant="outline"
-            size="icon"
-            onClick={handleVoiceSearch}
-            className={`${isListening ? 'bg-red-100 border-red-300' : ''}`}
+            onClick={voiceSearch}
+            className={isListening ? 'bg-red-50 border-red-200' : ''}
           >
-            <Volume2 className={`h-4 w-4 ${isListening ? 'text-red-500' : ''}`} />
-          </Button>
-          <Button onClick={surpriseMe} className="bg-gradient-to-r from-purple-500 to-pink-500">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Sorpréndeme
+            <Volume2 className={`h-4 w-4 mr-2 ${isListening ? 'text-red-500' : ''}`} />
+            {isListening ? 'Escuchando...' : 'Buscar por voz'}
           </Button>
         </div>
-      </div>
 
-      <div className="mb-6">
-        <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex flex-wrap gap-4 mt-4">
           <Select value={selectedEmotion} onValueChange={setSelectedEmotion}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Estado emocional" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Todos los estados</SelectItem>
               {emotionalStates.map((emotion) => (
                 <SelectItem key={emotion.value} value={emotion.value}>
                   {emotion.label}
@@ -291,9 +271,10 @@ export default function ShopPageNew() {
 
           <Select value={selectedRole} onValueChange={setSelectedRole}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Rol/Estilo de vida" />
+              <SelectValue placeholder="Estilo de vida" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Todos los estilos</SelectItem>
               {lifestyleRoles.map((role) => (
                 <SelectItem key={role.value} value={role.value}>
                   {role.label}
@@ -307,71 +288,70 @@ export default function ShopPageNew() {
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="technology">Tecnología</SelectItem>
-              <SelectItem value="sports">Deportes</SelectItem>
-              <SelectItem value="home">Hogar</SelectItem>
-              <SelectItem value="fashion">Moda</SelectItem>
+              <SelectItem value="all">Todas las categorías</SelectItem>
+              {Array.from(new Set(products.map(p => p.category_name).filter(Boolean))).map((category) => (
+                <SelectItem key={category} value={category!}>
+                  {category}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
-          <Button variant="outline" onClick={saveCurrentFilter}>
-            <Filter className="h-4 w-4 mr-2" />
-            Guardar Filtro
+          <Button onClick={surpriseMe} variant="outline">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Sorpréndeme
           </Button>
         </div>
-
-        {savedFilters.length > 0 && (
-          <div className="mt-4">
-            <p className="text-sm text-gray-600 mb-2">Filtros guardados:</p>
-            <div className="flex flex-wrap gap-2">
-              {savedFilters.map((filter, index) => (
-                <Badge key={index} variant="secondary" className="cursor-pointer">
-                  {filter}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList>
           <TabsTrigger value="relevant">Relevantes</TabsTrigger>
-          <TabsTrigger value="recent">Recientes</TabsTrigger>
-          <TabsTrigger value="favorites">Favoritos</TabsTrigger>
+          <TabsTrigger value="new">Nuevos</TabsTrigger>
+          <TabsTrigger value="favorites">Favoritos ({favorites.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="relevant">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="recent">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="favorites">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.length === 0 ? (
-              <div className="col-span-full text-center py-12">
-                <Heart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">No tienes productos favoritos aún</p>
-              </div>
-            ) : (
-              filteredProducts.map((product) => (
+        <TabsContent value={activeTab} className="mt-6">
+          {filteredProducts.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filteredProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-400 text-6xl mb-4">🔍</div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                No se encontraron productos
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Intenta cambiar los filtros o buscar algo diferente
+              </p>
+              <Button onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('all');
+                setSelectedEmotion('all');
+                setSelectedRole('all');
+              }}>
+                Limpiar filtros
+              </Button>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
+
+      {savedFilters.length > 0 && (
+        <div className="mt-8">
+          <h3 className="font-semibold mb-4">Filtros guardados</h3>
+          <div className="flex flex-wrap gap-2">
+            {savedFilters.map((filter, index) => (
+              <Badge key={index} variant="secondary" className="cursor-pointer">
+                {filter.replace(/all_/g, '').replace(/_/g, ' → ')}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
     </Container>
   );
 }

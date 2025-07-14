@@ -1,53 +1,110 @@
-# 🚀 ShopCart - Arquitectura de Microservicios
+# � ShopCart - E-commerce Microservices
 
-## ⚡ INICIO RÁPIDO (Para Compañeros del Equipo)
+## ⚡ INICIO RÁPIDO
 
-### 🎯 Opción 1: Instalación COMPLETAMENTE automática (RECOMENDADA)
-**¡NUEVO!** Instala TODO automáticamente, incluso si no tienes nada.
-
+### 🎯 Primera vez (Instalación completa)
 ```powershell
-# 1. Clonar el repo
-git clone [URL_DEL_REPOSITORIO]
-cd shopcart
-
-# 2. Abrir PowerShell como Administrador  
-# 3. Ejecutar UN SOLO comando (¡funciona sin credenciales!)
+# 1. Abrir PowerShell como Administrador
+# 2. Ejecutar una sola vez:
 .\INICIAR_TODO.ps1
 ```
-**🔒 SEGURO:** Este repositorio NO contiene secretos. Funciona inmediatamente sin OAuth real.
 
-📚 **Guía completa:** [`INICIO_SIN_SECRETOS.md`](./INICIO_SIN_SECRETOS.md)
-
-### 🎯 Opción 2: Configuración manual
+### 🎯 Desarrollo diario (Ya tienes todo instalado)
 ```powershell
-# Los archivos .env.example están listos para usar
-copy Backend\.env.example Backend\.env
-copy Backend\microservices\api-gateway\.env.example Backend\microservices\api-gateway\.env
-copy Frontend\.env.local.example Frontend\.env.local
-.\start-servers.ps1
+# Solo inicia los servicios:
+.\START_QUICK.ps1
 ```
-
-### 🎯 Opción 3: Configuración manual paso a paso
-Ver guía completa en: **[GUIA_INSTALACION_COMPLETA.md](GUIA_INSTALACION_COMPLETA.md)**
 
 ---
 
-## 🛠️ Scripts Útiles
+## 🏗️ Arquitectura
 
-| Script | Descripción | ¿Cuándo usar? |
-|--------|-------------|---------------|
-| `.\INICIAR_TODO.ps1` | 🚀 Instala TODO y ejecuta el sistema completo | **Primera vez o si faltan dependencias** |
-| `.\INICIAR_RAPIDO.ps1` | ⚡ Inicia solo los servicios (sin instalar) | **Si ya tienes todo instalado** |
-| `.\VERIFICAR_SISTEMA.ps1` | 🔍 Verifica estado de todos los servicios | **Para debugging** |
-| `.\DETENER_TODO.ps1` | 🛑 Detiene todos los servicios | **Para parar el sistema** |
-| `.\GENERAR_REPORTE.ps1` | 📊 Genera reporte detallado del sistema | **Si algo no funciona** |
+**Frontend:** Next.js 15 + TypeScript + React 19  
+**Backend:** 6 Microservicios Node.js independientes  
+**Base de datos:** PostgreSQL 17  
+**Comunicación:** REST APIs + RabbitMQ  
+
+### 🔌 Puertos
+- **Frontend:** http://localhost:3000  
+- **API Gateway:** http://localhost:5000  
+- **User Service:** http://localhost:5001  
+- **Product Service:** http://localhost:5002  
+- **Cart Service:** http://localhost:5003  
+- **Payment Service:** http://localhost:5004  
+- **Category Service:** http://localhost:5005  
 
 ---
 
-## 🏗️ Arquitectura del Sistema
+## 🛠️ Scripts Disponibles
+
+| Script | Descripción |
+|--------|-------------|
+| `INICIAR_TODO.ps1` | 🚀 Instalación completa automática (PostgreSQL, Node.js, dependencias, etc.) |
+| `START_QUICK.ps1` | ⚡ Inicio rápido para desarrollo diario |
+| `start-servers.ps1` | 📂 Script alternativo de inicio |
+
+---
+
+## ✨ Funcionalidades Implementadas
+
+✅ **Autenticación de usuarios** (registro, login, OAuth Google)  
+✅ **Catálogo de productos** con categorías  
+✅ **Carrito de compras** completamente funcional  
+✅ **Proceso de pago** con integración de pagos  
+✅ **Gestión de órdenes** y confirmaciones  
+✅ **Interfaz responsive** y moderna  
+✅ **Scanner visual** y navegación por voz  
+✅ **Sistema de recompensas** y blog  
+✅ **Panel de administración**  
+
+---
+
+## 🔧 Desarrollo
+
+### Backend (Microservicios)
+```bash
+cd Backend
+npm run start-all  # Inicia todos los microservicios
+```
+
+### Frontend
+```bash
+cd Frontend  
+npm run dev      # Modo desarrollo
+npm run build    # Compilar para producción
+npm start        # Ejecutar compilado
+```
+
+---
+
+## 📁 Estructura del Proyecto
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+shopcart/
+├── Frontend/           # Next.js app
+│   ├── app/           # Pages y routing
+│   ├── components/    # Componentes reutilizables  
+│   └── lib/          # Utilidades y API
+├── Backend/           
+│   ├── microservices/ # 6 microservicios independientes
+│   ├── database/      # Configuración y esquemas
+│   └── scripts/       # Scripts de utilidad
+└── *.ps1             # Scripts de automatización
+```
+
+---
+
+## 🚀 Estado del Proyecto
+
+**✅ COMPLETADO** - Todas las funcionalidades del carrito implementadas  
+**✅ LIMPIO** - Archivos innecesarios removidos  
+**✅ OPTIMIZADO** - Scripts mejorados para desarrollo  
+
+### � Próximos pasos sugeridos:
+- Implementar tests unitarios
+- Añadir monitoring y logs
+- Dockerización completa  
+- CI/CD pipeline
 │   Frontend      │───▶│   API Gateway    │───▶│   Microservicios    │
 │   (Next.js)     │    │   Port: 5000     │    │   (6 servicios)     │
 └─────────────────┘    └──────────────────┘    └─────────────────────┘

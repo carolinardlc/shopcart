@@ -1,8 +1,10 @@
 // lib/api.ts
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const CART_API_URL = 'http://localhost:5003/api'; // Cart service directo
 
 export interface ApiResponse<T = any> {
   mensaje?: string;
+  message?: string;
   data?: T;
   success?: boolean;
 }
@@ -165,6 +167,82 @@ class ApiService {
 
   async deleteCategory(id: number): Promise<ApiResponse> {
     return this.delete(`/categories/${id}`);
+  }
+
+  // Cart endpoints (usando cart-service directo)
+  async getCart(userId: number): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${CART_API_URL}/cart/${userId}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Error getting cart:', error);
+      throw error;
+    }
+  }
+
+  async addToCart(userId: number, productId: number, quantity: number = 1): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${CART_API_URL}/cart/${userId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id: productId, quantity })
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      throw error;
+    }
+  }
+
+  async updateCartItem(userId: number, productId: number, quantity: number): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${CART_API_URL}/cart/${userId}/items/product/${productId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quantity })
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating cart item:', error);
+      throw error;
+    }
+  }
+
+  async removeFromCart(userId: number, productId: number): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${CART_API_URL}/cart/${userId}/items/product/${productId}`, {
+        method: 'DELETE'
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error removing from cart:', error);
+      throw error;
+    }
+  }
+
+  async clearCart(userId: number): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${CART_API_URL}/cart/${userId}`, {
+        method: 'DELETE'
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      throw error;
+    }
+  }
+
+  // Payment endpoints
+  async createOrder(userId: number, orderData: any): Promise<ApiResponse> {
+    return this.post(`/payments/orders`, { user_id: userId, ...orderData });
+  }
+
+  async processPayment(orderId: number, paymentData: any): Promise<ApiResponse> {
+    return this.post(`/payments/process`, { order_id: orderId, ...paymentData });
+  }
+
+  async getOrder(orderId: number): Promise<ApiResponse> {
+    return this.get(`/payments/orders/${orderId}`);
   }
 }
 

@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiService, Product, Category } from '@/lib/api';
+import { useCart } from '@/contexts/CartContext';
+import AddToCartButton from '@/components/AddToCartButton';
 import Container from '@/components/Container';
 
 const ShopPage = () => {
@@ -73,13 +75,6 @@ const ShopPage = () => {
 
     setFilteredProducts(filtered);
   }, [products, selectedCategory, searchQuery]);
-
-  const addToCart = (product: Product) => {
-    // Aquí puedes implementar la lógica del carrito
-    console.log('Agregado al carrito:', product);
-    // Por ahora solo mostramos un alert
-    alert(`${product.name} agregado al carrito!`);
-  };
 
   if (isLoading) {
     return (
@@ -205,13 +200,14 @@ const ShopPage = () => {
                       </Badge>
                     )}
 
-                    <Button 
-                      onClick={() => addToCart(product)}
+                    <AddToCartButton
+                      productId={product.id}
+                      productName={product.name}
                       disabled={product.stock === 0}
                       className="w-full"
                     >
                       {product.stock === 0 ? 'Agotado' : 'Agregar al Carrito'}
-                    </Button>
+                    </AddToCartButton>
                   </div>
                 </CardContent>
               </Card>
