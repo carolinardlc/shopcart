@@ -1,8 +1,75 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Container from '@/components/Container';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { apiService, Product } from '@/lib/api';
+import AddToCartButton from '@/components/AddToCartButton';
 
 const HotDealPage = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
+
+  // Cargar productos
+  useEffect(() => {
+    const loadProducts = async () => {
+      setIsLoading(true);
+      setError('');
+      
+      try {
+        const response = await apiService.getProducts();
+        if (response.success && response.data) {
+          // Filtrar solo productos activos y tomar los primeros 8 para las ofertas
+          const activeProducts = response.data.filter(product => product.is_active);
+          setProducts(activeProducts.slice(0, 8));
+        }
+      } catch (err) {
+        setError('Error al cargar los productos.');
+        console.error('Error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, []);
+
+  // Función para calcular precio con descuento
+  const getDiscountedPrice = (price: string, discountPercent: number) => {
+    const originalPrice = parseFloat(price);
+    const discountedPrice = originalPrice * (1 - discountPercent / 100);
+    return discountedPrice.toFixed(2);
+  };
+
+  // Generar descuentos aleatorios para cada producto
+  const getRandomDiscount = (index: number) => {
+    const discounts = [30, 40, 50, 60, 35, 45, 55, 25];
+    return discounts[index % discounts.length];
+  };
+
+  if (isLoading) {
+    return (
+      <Container className="bg-shop-light-pink">
+        <div className="py-20 text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando ofertas...</p>
+        </div>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="bg-shop-light-pink">
+        <div className="py-20 text-center">
+          <p className="text-red-600">{error}</p>
+        </div>
+      </Container>
+    );
+  }
+
   return (
     <Container className="bg-shop-light-pink">
       <div className="max-w-6xl mx-auto">
@@ -30,165 +97,47 @@ const HotDealPage = () => {
 
         {/* Grid de productos en oferta */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {/* Producto 1 */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
-            <Badge className="absolute top-2 left-2 bg-red-500 text-white z-10">
-              -50%
-            </Badge>
-            <div className="h-48 bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500">Imagen del producto</span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold mb-2">Camiseta Premium</h3>
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="text-lg font-bold text-red-500">$25.00</span>
-                <span className="text-sm text-gray-500 line-through">$50.00</span>
+          {products.map((product, index) => {
+            const discountPercent = getRandomDiscount(index);
+            const originalPrice = parseFloat(product.price);
+            const discountedPrice = getDiscountedPrice(product.price, discountPercent);
+            
+            return (
+              <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden relative">
+                <Badge className="absolute top-2 left-2 bg-red-500 text-white z-10">
+                  -{discountPercent}%
+                </Badge>
+                <div className="h-48 bg-gray-200 flex items-center justify-center">
+                  {product.image_url ? (
+                    <img 
+                      src={product.image_url} 
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-gray-500">Imagen del producto</span>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="font-semibold mb-2 truncate">{product.name}</h3>
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span className="text-lg font-bold text-red-500">${discountedPrice}</span>
+                    <span className="text-sm text-gray-500 line-through">${originalPrice.toFixed(2)}</span>
+                  </div>
+                  <AddToCartButton
+                    productId={product.id}
+                    productName={product.name}
+                    disabled={product.stock === 0}
+                    size="sm"
+                    className="w-full"
+                  >
+                    {product.stock === 0 ? 'Agotado' : 'Agregar al carrito'}
+                  </AddToCartButton>
+                </div>
               </div>
-              <Button className="w-full" size="sm">
-                Agregar al carrito
-              </Button>
-            </div>
-          </div>
-
-          {/* Producto 2 */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
-            <Badge className="absolute top-2 left-2 bg-red-500 text-white z-10">
-              -40%
-            </Badge>
-            <div className="h-48 bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500">Imagen del producto</span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold mb-2">Jeans Clásicos</h3>
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="text-lg font-bold text-red-500">$36.00</span>
-                <span className="text-sm text-gray-500 line-through">$60.00</span>
-              </div>
-              <Button className="w-full" size="sm">
-                Agregar al carrito
-              </Button>
-            </div>
-          </div>
-
-          {/* Producto 3 */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
-            <Badge className="absolute top-2 left-2 bg-red-500 text-white z-10">
-              -60%
-            </Badge>
-            <div className="h-48 bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500">Imagen del producto</span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold mb-2">Chaqueta de Cuero</h3>
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="text-lg font-bold text-red-500">$80.00</span>
-                <span className="text-sm text-gray-500 line-through">$200.00</span>
-              </div>
-              <Button className="w-full" size="sm">
-                Agregar al carrito
-              </Button>
-            </div>
-          </div>
-
-          {/* Producto 4 */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
-            <Badge className="absolute top-2 left-2 bg-red-500 text-white z-10">
-              -35%
-            </Badge>
-            <div className="h-48 bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500">Imagen del producto</span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold mb-2">Sneakers Deportivos</h3>
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="text-lg font-bold text-red-500">$65.00</span>
-                <span className="text-sm text-gray-500 line-through">$100.00</span>
-              </div>
-              <Button className="w-full" size="sm">
-                Agregar al carrito
-              </Button>
-            </div>
-          </div>
-
-          {/* Producto 5 */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
-            <Badge className="absolute top-2 left-2 bg-red-500 text-white z-10">
-              -45%
-            </Badge>
-            <div className="h-48 bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500">Imagen del producto</span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold mb-2">Vestido Elegante</h3>
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="text-lg font-bold text-red-500">$44.00</span>
-                <span className="text-sm text-gray-500 line-through">$80.00</span>
-              </div>
-              <Button className="w-full" size="sm">
-                Agregar al carrito
-              </Button>
-            </div>
-          </div>
-
-          {/* Producto 6 */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
-            <Badge className="absolute top-2 left-2 bg-red-500 text-white z-10">
-              -55%
-            </Badge>
-            <div className="h-48 bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500">Imagen del producto</span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold mb-2">Reloj Casual</h3>
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="text-lg font-bold text-red-500">$45.00</span>
-                <span className="text-sm text-gray-500 line-through">$100.00</span>
-              </div>
-              <Button className="w-full" size="sm">
-                Agregar al carrito
-              </Button>
-            </div>
-          </div>
-
-          {/* Producto 7 */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
-            <Badge className="absolute top-2 left-2 bg-red-500 text-white z-10">
-              -30%
-            </Badge>
-            <div className="h-48 bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500">Imagen del producto</span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold mb-2">Mochila Urban</h3>
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="text-lg font-bold text-red-500">$35.00</span>
-                <span className="text-sm text-gray-500 line-through">$50.00</span>
-              </div>
-              <Button className="w-full" size="sm">
-                Agregar al carrito
-              </Button>
-            </div>
-          </div>
-
-          {/* Producto 8 */}
-          <div className="bg-white rounded-lg shadow-md overflow-hidden relative">
-            <Badge className="absolute top-2 left-2 bg-red-500 text-white z-10">
-              -70%
-            </Badge>
-            <div className="h-48 bg-gray-200 flex items-center justify-center">
-              <span className="text-gray-500">Imagen del producto</span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold mb-2">Gafas de Sol</h3>
-              <div className="flex items-center space-x-2 mb-3">
-                <span className="text-lg font-bold text-red-500">$15.00</span>
-                <span className="text-sm text-gray-500 line-through">$50.00</span>
-              </div>
-              <Button className="w-full" size="sm">
-                Agregar al carrito
-              </Button>
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         {/* Call to action */}

@@ -327,6 +327,81 @@ app.put('/api/cart/:userId/items/:itemId', async (req, res) => {
   }
 });
 
+// Actualizar cantidad de item por product_id
+app.put('/api/cart/:userId/items/product/:productId', async (req, res) => {
+  try {
+    const { userId, productId } = req.params;
+    const { quantity } = req.body;
+    
+    if (!quantity || quantity < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cantidad debe ser mayor a 0'
+      });
+    }
+    
+    // Verificar que el item existe y obtener información del producto
+    const itemCheck = await pool.query(`
+      SELECT ci.*, p.stock, p.is_active, c.id as cart_id
+      FROM cart_items ci
+      JOIN carts c ON ci.cart_id = c.id
+      JOIN products p ON ci.product_id = p.id
+      WHERE ci.product_id = $1 AND c.user_id = $2 AND c.status = 'active'
+    `, [productId, userId]);
+    
+    if (itemCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Producto no encontrado en el carrito'
+      });
+    }
+    
+    const item = itemCheck.rows[0];
+    
+    if (!item.is_active) {
+      return res.status(400).json({
+        success: false,
+        message: 'Producto no disponible'
+      });
+    }
+    
+    if (item.stock < quantity) {
+      return res.status(400).json({
+        success: false,
+        message: 'Stock insuficiente',
+        available_stock: item.stock
+      });
+    }
+    
+    const result = await pool.query(
+      `UPDATE cart_items 
+       SET quantity = $1, updated_at = CURRENT_TIMESTAMP 
+       WHERE product_id = $2 AND cart_id = $3
+       RETURNING *`,
+      [quantity, productId, item.cart_id]
+    );
+    
+    // Actualizar timestamp del carrito
+    await pool.query(
+      'UPDATE carts SET updated_at = CURRENT_TIMESTAMP WHERE id = $1',
+      [item.cart_id]
+    );
+    
+    res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'Cantidad actualizada exitosamente'
+    });
+  } catch (error) {
+    console.error('[Cart Service] Error al actualizar item por product_id:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: error.message
+    });
+  }
+});
+
 // Eliminar item del carrito
 app.delete('/api/cart/:userId/items/:itemId', async (req, res) => {
   try {
@@ -354,6 +429,42 @@ app.delete('/api/cart/:userId/items/:itemId', async (req, res) => {
     });
   } catch (error) {
     console.error('[Cart Service] Error al eliminar item:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: error.message
+    });
+  }
+});
+
+// Eliminar item del carrito por product_id
+app.delete('/api/cart/:userId/items/product/:productId', async (req, res) => {
+  try {
+    const { userId, productId } = req.params;
+    
+    // Verificar que el item pertenece al usuario y eliminarlo
+    const result = await pool.query(`
+      DELETE FROM cart_items 
+      WHERE product_id = $1 AND cart_id IN (
+        SELECT id FROM carts WHERE user_id = $2 AND status = 'active'
+      )
+      RETURNING id, product_id
+    `, [productId, userId]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Producto no encontrado en el carrito'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'Producto eliminado del carrito exitosamente'
+    });
+  } catch (error) {
+    console.error('[Cart Service] Error al eliminar item por product_id:', error);
     res.status(500).json({
       success: false,
       message: 'Error interno del servidor',

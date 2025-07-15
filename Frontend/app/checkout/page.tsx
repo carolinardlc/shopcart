@@ -12,7 +12,10 @@ import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CreditCard, Truck, Shield, MapPin } from 'lucide-react';
+import { CreditCard, Truck, Shield, MapPin, ArrowLeft } from 'lucide-react';
+import { useCart } from '@/contexts/CartContext';
+import { apiService } from '@/lib/api';
+import Link from 'next/link';
 
 interface CheckoutData {
   shipping: {
@@ -39,24 +42,10 @@ interface CheckoutData {
   gift_message?: string;
 }
 
-const mockOrderItems = [
-  {
-    id: 1,
-    name: 'Auriculares Bluetooth Premium',
-    price: 89.99,
-    quantity: 1,
-    image: '/api/placeholder/80/80'
-  },
-  {
-    id: 2,
-    name: 'Mochila Deportiva Multifuncional',
-    price: 45.99,
-    quantity: 2,
-    image: '/api/placeholder/80/80'
-  }
-];
-
 export default function CheckoutPage() {
+  const router = useRouter();
+  const { items, getTotalAmount, clearCart } = useCart();
+  
   const [checkoutData, setCheckoutData] = useState<CheckoutData>({
     shipping: {
       firstName: '',
@@ -85,12 +74,27 @@ export default function CheckoutPage() {
   const [isGift, setIsGift] = useState(false);
   const [saveAddress, setSaveAddress] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
 
-  const subtotal = mockOrderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  // Calcular totales usando el carrito real
+  const subtotal = getTotalAmount();
   const tax = subtotal * 0.18;
   const shippingCost = checkoutData.shipping_method === 'express' ? 15.99 : 5.99;
   const total = subtotal + tax + shippingCost;
+
+  // Redirigir si el carrito está vacío
+  if (items.length === 0) {
+    return (
+      <Container>
+        <div className="py-20 text-center">
+          <h2 className="text-2xl font-semibold mb-4">Tu carrito está vacío</h2>
+          <p className="text-gray-600 mb-8">Agrega algunos productos antes de proceder al pago.</p>
+          <Link href="/shop">
+            <Button>Ir a la tienda</Button>
+          </Link>
+        </div>
+      </Container>
+    );
+  }
 
   const handleInputChange = (section: 'shipping' | 'payment', field: string, value: string) => {
     setCheckoutData(prev => ({
@@ -107,8 +111,53 @@ export default function CheckoutPage() {
     setIsLoading(true);
 
     try {
-      // Simular procesamiento de pago
+      // Validar datos requeridos
+      const { shipping, payment } = checkoutData;
+      if (!shipping.firstName || !shipping.lastName || !shipping.email || !shipping.address) {
+        alert('Por favor, completa todos los campos requeridos de envío.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (payment.method === 'card' && (!payment.cardNumber || !payment.expiryDate || !payment.cvv || !payment.cardName)) {
+        alert('Por favor, completa todos los campos de la tarjeta.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Crear orden usando el API real
+      const orderData = {
+        shipping_info: checkoutData.shipping,
+        payment_info: {
+          method: checkoutData.payment.method,
+          // No enviamos datos sensibles reales de tarjeta al backend
+          ...(checkoutData.payment.method !== 'card' && {
+            details: checkoutData.payment
+          })
+        },
+        shipping_method: checkoutData.shipping_method,
+        gift_message: isGift ? checkoutData.gift_message : null,
+        items: items.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: parseFloat(item.price_at_time)
+        })),
+        totals: {
+          subtotal,
+          tax,
+          shipping: shippingCost,
+          total
+        }
+      };
+
+      // Por ahora simulamos el proceso, en producción usarías el API real
+      console.log('Order data to be sent:', orderData);
+      
+      // Simular procesamiento
       await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Vaciar carrito después del éxito
+      await clearCart();
       
       // Redirigir a página de confirmación
       router.push('/order-confirmation');
@@ -405,23 +454,43 @@ export default function CheckoutPage() {
           <div className="lg:col-span-1">
             <Card className="sticky top-4">
               <CardHeader>
-                <CardTitle>Resumen del Pedido</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Resumen del Pedido</span>
+                  <Link href="/cart">
+                    <Button variant="outline" size="sm">
+                      <ArrowLeft className="w-4 h-4 mr-2" />
+                      Editar
+                    </Button>
+                  </Link>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-3">
-                  {mockOrderItems.map((item) => (
+                  {items.map((item) => (
                     <div key={item.id} className="flex items-center gap-3">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-12 h-12 object-cover rounded"
-                      />
+                      <div className="w-12 h-12 bg-gray-100 rounded flex-shrink-0">
+                        {item.product_image ? (
+                          <img
+                            src={item.product_image}
+                            alt={item.product_name}
+                            className="w-full h-full object-cover rounded"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSIjRjVGNUY1Ii8+CjxwYXRoIGQ9Ik02MCA2MEgxNDBWMTQwSDYwVjYwWiIgZmlsbD0iI0Q5RDlEOSIvPgo8L3N2Zz4K';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded">
+                            <span className="text-gray-400 text-xs">Sin imagen</span>
+                          </div>
+                        )}
+                      </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{item.name}</p>
+                        <p className="text-sm font-medium">{item.product_name}</p>
                         <p className="text-xs text-gray-600">Cantidad: {item.quantity}</p>
+                        <p className="text-xs text-gray-600">${parseFloat(item.price_at_time).toFixed(2)} c/u</p>
                       </div>
                       <span className="text-sm font-semibold">
-                        S/{(item.price * item.quantity).toFixed(2)}
+                        ${parseFloat(item.subtotal).toFixed(2)}
                       </span>
                     </div>
                   ))}
@@ -432,20 +501,20 @@ export default function CheckoutPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal:</span>
-                    <span>S/{subtotal.toFixed(2)}</span>
+                    <span>${subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Envío:</span>
-                    <span>S/{shippingCost.toFixed(2)}</span>
+                    <span>${shippingCost.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>IGV (18%):</span>
-                    <span>S/{tax.toFixed(2)}</span>
+                    <span>${tax.toFixed(2)}</span>
                   </div>
                   <Separator />
                   <div className="flex justify-between font-semibold text-lg">
                     <span>Total:</span>
-                    <span>S/{total.toFixed(2)}</span>
+                    <span>${total.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -454,7 +523,7 @@ export default function CheckoutPage() {
                   onClick={handleSubmit}
                   disabled={isLoading}
                 >
-                  {isLoading ? 'Procesando...' : 'Completar Compra'}
+                  {isLoading ? 'Procesando...' : 'Realizar Pago'}
                 </Button>
 
                 <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
